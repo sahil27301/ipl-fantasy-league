@@ -14,16 +14,30 @@ router = APIRouter()
 def get_players(
     skip: int = 0,
     limit: int = 100,
-    role: Optional[PlayerRole] = None,
+    role: Optional[str] = None,
     ipl_team: Optional[str] = None,
     is_sold: Optional[bool] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    sort_by: Optional[str] = None,  # name, base_price, sold_price
+    sort_desc: bool = False,
     db: Session = Depends(get_db)
 ):
     """
-    Retrieve all players with optional filtering.
+    Retrieve all players with optional filtering and sorting.
+    
+    Parameters:
+    - role: Filter by player role (BAT, BOWL, AR, WK)
+    - ipl_team: Filter by IPL team
+    - is_sold: Filter by sold/unsold status
+    - min_price: Filter by minimum base price
+    - max_price: Filter by maximum base price
+    - sort_by: Sort by field (name, base_price, sold_price)
+    - sort_desc: Sort in descending order if True
     """
     query = db.query(Player)
     
+    # Apply filters
     if role:
         query = query.filter(Player.role == role)
     if ipl_team:
@@ -33,6 +47,16 @@ def get_players(
             query = query.filter(Player.team_id.isnot(None))
         else:
             query = query.filter(Player.team_id.is_(None))
+    if min_price is not None:
+        query = query.filter(Player.base_price >= min_price)
+    if max_price is not None:
+        query = query.filter(Player.base_price <= max_price)
+    
+    # Apply sorting
+    if sort_by:
+        sort_column = getattr(Player, sort_by, None)
+        if sort_column is not None:
+            query = query.order_by(sort_column.desc() if sort_desc else sort_column.asc())
     
     players = query.offset(skip).limit(limit).all()
     
@@ -129,8 +153,12 @@ def update_player(
         if not team:
             raise HTTPException(status_code=404, detail="Team not found")
         
-        # Calculate total spent by the team
+        # Check team size limit
         team_players = db.query(Player).filter(Player.team_id == team.id).all()
+        if len(team_players) >= 16:
+            raise HTTPException(status_code=400, detail="Team has reached maximum size of 16 players")
+        
+        # Calculate total spent by the team
         total_spent = sum(float(getattr(p, 'sold_price', 0) or 0) for p in team_players)
         
         # Calculate remaining purse
