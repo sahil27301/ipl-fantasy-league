@@ -4,6 +4,7 @@ import { useTeams } from '@/lib/hooks/useTeams';
 import { useQuery } from '@tanstack/react-query';
 import { Filter, PlusCircle, Search } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface LeaderboardEntry {
   team_id: number;
@@ -12,10 +13,6 @@ interface LeaderboardEntry {
   matches_played: number;
   total_points: number;
   average_points_per_match: number;
-}
-
-interface LeaderboardResponse {
-  data: LeaderboardEntry[];
 }
 
 const Teams = () => {
@@ -29,19 +26,22 @@ const Teams = () => {
   // Get leaderboard data for points and rankings
   const { data: leaderboard } = useQuery<LeaderboardEntry[]>({
     queryKey: ['dashboard', 'leaderboard'],
-    queryFn: async () => {
-      const response = await api.get<LeaderboardResponse>('/dashboard/leaderboard/');
-      return response.data;
-    },
+    queryFn: () => api.get<LeaderboardEntry[]>('/dashboard/leaderboard'),
   });
 
   // Merge leaderboard data with teams
   const teamsWithStats = teams?.map(team => {
     const leaderboardEntry = leaderboard?.find(entry => entry.team_id === team.id);
+    const rank = leaderboardEntry ? leaderboard.findIndex(e => e.team_id === team.id) + 1 : 0;
+    const points = leaderboardEntry?.total_points || 0;
+    
+    // Return a new object with stats, preserving the original team data
     return {
       ...team,
-      points: leaderboardEntry?.total_points || 0,
-      rank: leaderboardEntry ? leaderboard.findIndex(e => e.team_id === team.id) + 1 : 0,
+      displayStats: {
+        points,
+        rank,
+      },
     };
   });
 
@@ -151,7 +151,7 @@ const Teams = () => {
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-lg font-semibold">{team.name}</h3>
               <div className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                {team.rank ? `Rank #${team.rank}` : 'Not Ranked'}
+                {team.displayStats.rank ? `Rank #${team.displayStats.rank}` : 'Not Ranked'}
               </div>
             </div>
             
@@ -163,7 +163,7 @@ const Teams = () => {
               
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Points</span>
-                <span className="font-medium">{team.points}</span>
+                <span className="font-medium">{team.displayStats.points}</span>
               </div>
               
               <div className="space-y-1">
@@ -183,14 +183,15 @@ const Teams = () => {
             </div>
             
             <div className="mt-5 pt-4 border-t border-border flex justify-end">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-xs"
-                onClick={() => window.location.href = `/teams/${team.id}`}
-              >
-                View Details
-              </Button>
+              <Link to={`/teams/${team.id}`}>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs"
+                >
+                  View Details
+                </Button>
+              </Link>
             </div>
           </div>
         ))}

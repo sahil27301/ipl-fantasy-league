@@ -1,18 +1,18 @@
-
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import MainLayout from "./layout/MainLayout";
-import Dashboard from "./pages/Dashboard";
-import Teams from "./pages/Teams";
-import Players from "./pages/Players";
 import Auction from "./pages/Auction";
+import Dashboard from "./pages/Dashboard";
 import Matches from "./pages/Matches";
-import Scores from "./pages/Scores";
 import NotFound from "./pages/NotFound";
+import Players from "./pages/Players";
+import Scores from "./pages/Scores";
+import TeamDetails from "./pages/TeamDetails";
+import Teams from "./pages/Teams";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +25,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<MainLayout><Dashboard /></MainLayout>} />
           <Route path="/teams" element={<MainLayout><Teams /></MainLayout>} />
+          <Route path="/teams/:id" element={<MainLayout><TeamDetails /></MainLayout>} />
           <Route path="/players" element={<MainLayout><Players /></MainLayout>} />
           <Route path="/auction" element={<MainLayout><Auction /></MainLayout>} />
           <Route path="/matches" element={<MainLayout><Matches /></MainLayout>} />
