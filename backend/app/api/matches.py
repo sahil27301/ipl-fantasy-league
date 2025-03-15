@@ -74,13 +74,16 @@ def update_match(
         raise HTTPException(status_code=404, detail="Match not found")
     
     # Update allowed fields
+    update_data = {}
     if match_update.match_date is not None:
-        db_match.match_date = match_update.match_date
+        update_data["match_date"] = match_update.match_date
     if match_update.venue is not None:
-        db_match.venue = match_update.venue
+        update_data["venue"] = match_update.venue
     if match_update.is_completed is not None:
-        db_match.is_completed = match_update.is_completed
+        update_data["is_completed"] = match_update.is_completed
     
+    # Update using SQLAlchemy update
+    db.query(Match).filter(Match.id == match_id).update(update_data)
     db.commit()
     db.refresh(db_match)
     return db_match
