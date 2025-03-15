@@ -5,6 +5,7 @@ import UpcomingMatchesWidget from '@/components/dashboard/UpcomingMatchesWidget'
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/ui/stat-card';
 import { api } from '@/lib/api/client';
+import { matchData, playerData } from '@/lib/data';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, Trophy, User, Users } from 'lucide-react';
 
@@ -38,6 +39,8 @@ interface Team {
   points: number;
   change: number;
   rank: number;
+  initialPurse?: number;
+  currentPurse?: number;
 }
 
 interface Player {
@@ -63,51 +66,66 @@ interface Match {
 }
 
 const Dashboard = () => {
-  // Fetch dashboard stats
-  const { data: stats, isLoading: statsLoading, isError: statsError } = useQuery<DashboardStats>({
-    queryKey: ['dashboard', 'stats'],
-    queryFn: () => api.get<DashboardStats>('/dashboard/stats'),
+  // Fetch teams from the API
+  const { data: teamsData, isLoading: teamsLoading, isError: teamsError } = useQuery<Team[]>({
+    queryKey: ['teams'],
+    queryFn: () => api.get<Team[]>('/teams/'),
   });
 
-  // Fetch leaderboard
-  const { data: leaderboardEntries, isLoading: teamsLoading, isError: teamsError } = useQuery<LeaderboardEntry[]>({
+  // Fetch leaderboard data from dashboard API
+  const { data: leaderboardData, isLoading: leaderboardLoading, isError: leaderboardError } = useQuery<LeaderboardEntry[]>({
     queryKey: ['dashboard', 'leaderboard'],
-    queryFn: () => api.get<LeaderboardEntry[]>('/leaderboard'),
+    queryFn: () => api.get<LeaderboardEntry[]>('/dashboard/leaderboard/'),
   });
 
-  // Fetch top players
-  const { data: topPlayers, isLoading: playersLoading, isError: playersError } = useQuery<Player[]>({
-    queryKey: ['dashboard', 'top-players'],
+  // Fetch players from the API
+  const { data: playersFromApi, isLoading: playersLoading, isError: playersError } = useQuery<Player[]>({
+    queryKey: ['players'],
     queryFn: () => api.get<Player[]>('/players/?sort_by=points&sort_desc=true&limit=5'),
   });
 
-  // Fetch recent matches
-  const { data: recentMatches, isLoading: recentMatchesLoading, isError: recentMatchesError } = useQuery<Match[]>({
-    queryKey: ['dashboard', 'recent-matches'],
-    queryFn: () => api.get<Match[]>('/matches/?is_completed=true&limit=3'),
+  // Fetch matches from the API
+  const { data: matchesFromApi, isLoading: matchesLoading, isError: matchesError } = useQuery<Match[]>({
+    queryKey: ['matches'],
+    queryFn: () => api.get<Match[]>('/matches/'),
   });
 
-  // Fetch upcoming matches
-  const { data: upcomingMatches, isLoading: upcomingMatchesLoading, isError: upcomingMatchesError } = useQuery<Match[]>({
-    queryKey: ['dashboard', 'upcoming-matches'],
-    queryFn: () => api.get<Match[]>('/matches/?is_completed=false&limit=3'),
-  });
-
-  // Convert leaderboard entries to teams format for LeaderboardWidget
-  const teams: Team[] = leaderboardEntries?.map((entry, index) => ({
+  // Convert leaderboard entries to Team[] format for LeaderboardWidget
+  const teams: Team[] = leaderboardData?.map((entry, index) => ({
     id: entry.team_id,
     name: entry.team_name,
     ownerName: entry.owner_name,
     points: entry.total_points,
-    rank: entry.rank || index + 1,
+    rank: index + 1,
     change: entry.change || 0
   })) || [];
 
+  // Use API data with fallbacks to mock data
+  const topPlayers = playersFromApi || playerData.sort((a, b) => b.points - a.points).slice(0, 5);
+  const matches = matchesFromApi || matchData;
+  const recentMatches = matches.filter(match => match.isCompleted).slice(0, 3);
+  const upcomingMatches = matches.filter(match => !match.isCompleted).slice(0, 3);
+  
+  // Compute dashboard stats
+  const stats: DashboardStats = {
+    totalTeams: teams.length || 0,
+    totalPlayers: playerData.length,
+    completedMatches: matches.filter(m => m.isCompleted).length,
+    totalMatches: matches.length,
+    topTeam: teams.length > 0 
+      ? {
+          name: teams[0].name,
+          points: teams[0].points || 0
+        }
+      : { name: "No team found", points: 0 },
+    newPlayers: 5  // Hardcoded for now
+  };
+
   // Check if any data is loading
-  const isLoading = statsLoading || teamsLoading || playersLoading || recentMatchesLoading || upcomingMatchesLoading;
+  const isLoading = teamsLoading || leaderboardLoading || playersLoading || matchesLoading;
 
   // Check if any data has error
-  const hasError = statsError || teamsError || playersError || recentMatchesError || upcomingMatchesError;
+  const hasError = teamsError || leaderboardError || playersError || matchesError;
 
   // Loading state
   if (isLoading) {
@@ -148,26 +166,26 @@ const Dashboard = () => {
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
           title="Total Teams" 
-          value={stats?.totalTeams || 0}
+          value={stats.totalTeams}
           description="Active fantasy teams in league"
           icon={<Users className="h-5 w-5" />}
         />
         <StatCard 
           title="Total Players" 
-          value={stats?.totalPlayers || 0}
+          value={stats.totalPlayers}
           description="Players in the auction pool"
           icon={<User className="h-5 w-5" />}
-          trend={{ value: stats?.newPlayers || 0, isPositive: true }}
+          trend={{ value: stats.newPlayers, isPositive: true }}
         />
         <StatCard 
           title="Top Team" 
-          value={stats?.topTeam?.name || ""}
-          description={`${stats?.topTeam?.points || 0} points`}
+          value={stats.topTeam.name}
+          description={`${stats.topTeam.points} points`}
           icon={<Trophy className="h-5 w-5" />}
         />
         <StatCard 
           title="Matches" 
-          value={`${stats?.completedMatches || 0}/${stats?.totalMatches || 0}`}
+          value={`${stats.completedMatches}/${stats.totalMatches}`}
           description="Completed matches"
           icon={<Calendar className="h-5 w-5" />}
         />
@@ -175,12 +193,12 @@ const Dashboard = () => {
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <LeaderboardWidget teams={teams} />
-        <TopPerformersWidget players={topPlayers || []} />
+        <TopPerformersWidget players={topPlayers} />
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentMatchesWidget matches={recentMatches || []} />
-        <UpcomingMatchesWidget matches={upcomingMatches || []} />
+        <RecentMatchesWidget matches={recentMatches} />
+        <UpcomingMatchesWidget matches={upcomingMatches} />
       </section>
     </div>
   );
