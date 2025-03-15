@@ -1,8 +1,7 @@
-
+import { Button } from '@/components/ui/button';
+import { Menu, Search } from 'lucide-react';
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Menu, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -16,6 +15,13 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/') return 'Dashboard';
+    
+    // Handle team details page
+    if (path.startsWith('/teams/')) {
+      return 'Team Details';
+    }
+    
+    // Handle other routes
     return path.charAt(1).toUpperCase() + path.slice(2);
   };
 
