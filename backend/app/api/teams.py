@@ -10,16 +10,49 @@ from ..schemas.team import TeamCreate, TeamUpdate, Team as TeamSchema, TeamWithS
 
 router = APIRouter()
 
-@router.get("/", response_model=List[TeamSchema])
+@router.get("/", response_model=List[TeamWithStats])
 def get_teams(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
     """
-    Retrieve all fantasy league teams.
+    Retrieve all fantasy league teams with their stats.
     """
-    return db.query(Team).offset(skip).limit(limit).all()
+    teams = db.query(Team).offset(skip).limit(limit).all()
+    result = []
+    
+    for team in teams:
+        # Get team statistics
+        players = db.query(Player).filter(Player.team_id == team.id).all()
+        
+        # Calculate statistics
+        total_players = len(players)
+        total_spent = sum(float(getattr(p, 'sold_price', 0) or 0) for p in players)
+        players_by_role = {"BAT": 0, "BOWL": 0, "AR": 0, "WK": 0}
+        
+        for player in players:
+            role = str(getattr(player, 'role', ''))
+            if role in players_by_role:
+                players_by_role[role] += 1
+        
+        # Convert SQLAlchemy model to dict first
+        team_dict = {}
+        for column in Team.__table__.columns:
+            value = getattr(team, column.name)
+            team_dict[column.name] = value
+        
+        # Create response
+        response = TeamWithStats(
+            **team_dict,
+            total_players=total_players,
+            total_spent=total_spent,
+            remaining_purse=team_dict['initial_purse'] - total_spent,
+            players_by_role=players_by_role
+        )
+        result.append(response)
+    
+    return result
 
 @router.post("/", response_model=TeamSchema)
 def create_team(
