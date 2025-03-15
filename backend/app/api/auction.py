@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, Float, cast, Numeric
-from typing import Dict, List, Optional, Any, Tuple
+from sqlalchemy import func, cast, Numeric
 from datetime import datetime
 from sqlalchemy import update
 
