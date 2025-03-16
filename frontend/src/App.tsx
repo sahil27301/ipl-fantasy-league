@@ -6,6 +6,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import MainLayout from "./layout/MainLayout";
 import Auction from "./pages/Auction";
+import AuctionStats from "./pages/AuctionStats";
 import Dashboard from "./pages/Dashboard";
 import Matches from "./pages/Matches";
 import NotFound from "./pages/NotFound";
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/teams/:id" element={<MainLayout><TeamDetails /></MainLayout>} />
           <Route path="/players" element={<MainLayout><Players /></MainLayout>} />
           <Route path="/auction" element={<MainLayout><Auction /></MainLayout>} />
+          <Route path="/auction/stats" element={<MainLayout><AuctionStats /></MainLayout>} />
           <Route path="/matches" element={<MainLayout><Matches /></MainLayout>} />
           <Route path="/scores" element={<MainLayout><Scores /></MainLayout>} />
           <Route path="*" element={<NotFound />} />

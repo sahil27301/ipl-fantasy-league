@@ -17,10 +17,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Update both initial and current purse to 10000 (100 crores in lakhs)
+    # Update both initial and current purse to 12000 (120 crores in lakhs)
     conn = op.get_bind()
     conn.execute(
-        sa.text('UPDATE teams SET initial_purse = 10000.0, current_purse = 10000.0')
+        sa.text('UPDATE teams SET initial_purse = 12000.0, current_purse = 12000.0')
     )
 
 

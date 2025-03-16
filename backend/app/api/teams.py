@@ -7,6 +7,7 @@ from sqlalchemy import update
 from ..db.database import get_db
 from ..models import Team, Player
 from ..schemas.team import TeamCreate, TeamUpdate, Team as TeamSchema, TeamWithStats
+from ..schemas.player import Player as PlayerSchema
 
 router = APIRouter()
 
@@ -138,7 +139,7 @@ def update_team(
     db.refresh(db_team)
     return db_team
 
-@router.get("/{team_id}/players", response_model=List[TeamSchema])
+@router.get("/{team_id}/players", response_model=List[PlayerSchema])
 def get_team_players(
     team_id: int,
     db: Session = Depends(get_db)
@@ -149,4 +150,6 @@ def get_team_players(
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
-    return team.players 
+    
+    players = db.query(Player).filter(Player.team_id == team_id).all()
+    return players 

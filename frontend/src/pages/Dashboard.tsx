@@ -108,7 +108,7 @@ const Dashboard = () => {
   
   // Compute dashboard stats
   const stats: DashboardStats = {
-    totalTeams: teams.length || 0,
+    totalTeams: teamsData?.length || 0,
     totalPlayers: playerData.length,
     completedMatches: matches.filter(m => m.isCompleted).length,
     totalMatches: matches.length,

@@ -2,18 +2,25 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from sqlalchemy import update
+from sqlalchemy import update, func, and_, or_
 
 from ..db.database import get_db
 from ..models import Player, Team
-from ..schemas.player import PlayerCreate, PlayerUpdate, Player as PlayerSchema, PlayerWithTeam, PlayerRole
+from ..schemas.player import (
+    PlayerCreate, 
+    PlayerUpdate, 
+    Player as PlayerSchema, 
+    PlayerWithTeam, 
+    PlayerRole,
+    PaginatedPlayerResponse
+)
 
 router = APIRouter()
 
-@router.get("/", response_model=List[PlayerWithTeam])
+@router.get("/", response_model=PaginatedPlayerResponse)
 def get_players(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 1000,
     role: Optional[str] = None,
     ipl_team: Optional[str] = None,
     is_sold: Optional[bool] = None,
@@ -35,29 +42,35 @@ def get_players(
     - sort_by: Sort by field (name, base_price, sold_price)
     - sort_desc: Sort in descending order if True
     """
-    query = db.query(Player)
+    # Base query for filtering
+    base_query = db.query(Player)
     
     # Apply filters
     if role:
-        query = query.filter(Player.role == role)
+        base_query = base_query.filter(Player.role == role)
     if ipl_team:
-        query = query.filter(Player.ipl_team == ipl_team)
+        base_query = base_query.filter(Player.ipl_team == ipl_team)
     if is_sold is not None:
         if is_sold:
-            query = query.filter(Player.team_id.isnot(None))
+            base_query = base_query.filter(Player.team_id.isnot(None))
         else:
-            query = query.filter(Player.team_id.is_(None))
+            base_query = base_query.filter(and_(Player.team_id.is_(None), or_(Player.sold_price.is_(None), Player.sold_price == 0)))
     if min_price is not None:
-        query = query.filter(Player.base_price >= min_price)
+        base_query = base_query.filter(Player.base_price >= min_price)
     if max_price is not None:
-        query = query.filter(Player.base_price <= max_price)
+        base_query = base_query.filter(Player.base_price <= max_price)
+    
+    # Count total matching records for pagination
+    total_count = base_query.count()
     
     # Apply sorting
+    query = base_query
     if sort_by:
         sort_column = getattr(Player, sort_by, None)
         if sort_column is not None:
             query = query.order_by(sort_column.desc() if sort_desc else sort_column.asc())
     
+    # Apply pagination
     players = query.offset(skip).limit(limit).all()
     
     # Enhance player data with team information
@@ -80,7 +93,13 @@ def get_players(
                 player_data.team_owner = str(team.owner_name)
         result.append(player_data)
     
-    return result
+    # Return paginated response
+    return PaginatedPlayerResponse(
+        items=result,
+        total=total_count,
+        skip=skip,
+        limit=limit
+    )
 
 @router.post("/", response_model=PlayerSchema)
 def create_player(

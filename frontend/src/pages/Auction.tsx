@@ -63,7 +63,44 @@ const Auction = () => {
   // Fetch players that aren't sold yet
   const { data: availablePlayers, isLoading: playersLoading, isError: playersError } = useQuery<Player[]>({
     queryKey: ['players', 'unsold'],
-    queryFn: () => api.get<Player[]>('/players/?is_sold=false'),
+    queryFn: async () => {
+      // Create interface for paginated response
+      interface PaginatedResponse {
+        items: {
+          id: number;
+          name: string;
+          ipl_team: string;
+          role: string;
+          base_price: number;
+          sold_price: number | null;
+          team_id: number | null;
+          is_sold: boolean;
+          created_at: string;
+          updated_at: string;
+          team_name?: string;
+          team_owner?: string;
+        }[];
+        total: number;
+        skip: number;
+        limit: number;
+      }
+      
+      // Use direct URL with query parameters instead of params object
+      const response = await api.get<PaginatedResponse>('/players/?is_sold=false&limit=1000');
+      
+      // Transform API response to match frontend Player interface
+      return response.items.map(player => ({
+        id: player.id,
+        name: player.name,
+        iplTeam: player.ipl_team,
+        role: player.role,
+        basePrice: player.base_price,
+        soldPrice: player.sold_price || 0,
+        teamId: player.team_id,
+        isSold: player.is_sold,
+        points: 0 // Default points
+      }));
+    }
   });
   
   // Get auction stats to get team information

@@ -7,7 +7,7 @@ from app.schemas.player import Player
 class TeamBase(BaseModel):
     name: str = Field(..., description="Team name")
     owner_name: str = Field(..., description="Team owner's name")
-    initial_purse: float = Field(default=10000.0, description="Initial purse amount in lakhs")
+    initial_purse: float = Field(default=12000.0, description="Initial purse amount in lakhs")
 
 # Properties to receive on team creation
 class TeamCreate(TeamBase):

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING, Any
 from enum import Enum
 
 if TYPE_CHECKING:
@@ -57,3 +57,10 @@ class PlayerWithScores(Player):
 class PlayerWithTeam(Player):
     team_name: Optional[str] = None
     team_owner: Optional[str] = None 
+
+# Paginated response for players
+class PaginatedPlayerResponse(BaseModel):
+    items: List[PlayerWithTeam]
+    total: int
+    skip: int
+    limit: int 
