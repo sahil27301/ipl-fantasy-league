@@ -1,13 +1,13 @@
 import type {
-    ApiMatch,
-    ApiPlayer,
-    ApiPlayerScore,
-    ApiTeam,
-    Match,
-    Player,
-    PlayerScore,
-    Team,
-} from './types';
+  ApiMatch,
+  ApiPlayer,
+  ApiPlayerScore,
+  ApiTeam,
+  Match,
+  Player,
+  PlayerScore,
+  Team,
+} from "./types";
 
 // Helper function to convert snake_case dates to camelCase
 const transformDates = (obj: any) => {
@@ -25,7 +25,7 @@ export const transformTeam = (team: ApiTeam): Team => ({
   name: team.name,
   ownerName: team.owner_name,
   initialPurse: team.initial_purse,
-  currentPurse: team.remaining_purse || team.initial_purse,
+  currentPurse: team.remaining_purse ?? team.initial_purse,
   points: team.total_points || 0,
   rank: team.rank || 0,
   change: team.rank_change || 0,
@@ -98,4 +98,4 @@ export const reverseTransformPlayerScore = (score: Partial<PlayerScore>) => ({
   player_id: score.playerId,
   match_id: score.matchId,
   points: score.points,
-}); 
+});

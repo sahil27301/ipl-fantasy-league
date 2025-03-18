@@ -1,16 +1,21 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api/client';
-import { reverseTransformTeam, transformPlayer, transformTeam } from '../api/transforms';
-import type { ApiPlayer, ApiTeam, Team } from '../api/types';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "../api/client";
+import {
+  reverseTransformTeam,
+  transformPlayer,
+  transformTeam,
+} from "../api/transforms";
+import type { ApiPlayer, ApiTeam, Team } from "../api/types";
 
 // Query key factory
 export const teamKeys = {
-  all: ['teams'] as const,
-  lists: () => [...teamKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...teamKeys.lists(), { filters }] as const,
-  details: () => [...teamKeys.all, 'detail'] as const,
+  all: ["teams"] as const,
+  lists: () => [...teamKeys.all, "list"] as const,
+  list: (filters: Record<string, any>) =>
+    [...teamKeys.lists(), { filters }] as const,
+  details: () => [...teamKeys.all, "detail"] as const,
   detail: (id: number) => [...teamKeys.details(), id] as const,
-  players: (id: number) => [...teamKeys.detail(id), 'players'] as const,
+  players: (id: number) => [...teamKeys.detail(id), "players"] as const,
 };
 
 // Hooks
@@ -18,7 +23,7 @@ export const useTeams = (filters?: Record<string, any>) => {
   return useQuery({
     queryKey: teamKeys.list(filters ?? {}),
     queryFn: async () => {
-      const response = await api.get<ApiTeam[]>('/teams');
+      const response = await api.get<ApiTeam[]>("/teams");
       return response.map(transformTeam);
     },
   });
@@ -40,7 +45,10 @@ export const useCreateTeam = () => {
 
   return useMutation({
     mutationFn: async (newTeam: Partial<Team>) => {
-      const response = await api.post<ApiTeam>('/teams', reverseTransformTeam(newTeam));
+      const response = await api.post<ApiTeam>(
+        "/teams",
+        reverseTransformTeam(newTeam)
+      );
       return transformTeam(response);
     },
     onSuccess: () => {
@@ -54,11 +62,16 @@ export const useUpdateTeam = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Team> & { id: number }) => {
-      const response = await api.put<ApiTeam>(`/teams/${id}`, reverseTransformTeam(data));
+      const response = await api.put<ApiTeam>(
+        `/teams/${id}`,
+        reverseTransformTeam(data)
+      );
       return transformTeam(response);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: teamKeys.detail(variables.id) });
+      queryClient.invalidateQueries({
+        queryKey: teamKeys.detail(variables.id),
+      });
       queryClient.invalidateQueries({ queryKey: teamKeys.lists() });
     },
   });
@@ -94,4 +107,4 @@ export const useTeamPlayers = (teamId: number) => {
     },
     enabled: !!teamId, // Only run query if teamId is provided
   });
-}; 
+};
